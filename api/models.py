@@ -3,6 +3,8 @@ from django.db import models
 class User(models.Model):
     user_id = models.CharField(max_length=20, primary_key=True)
     name = models.CharField(max_length=100)
+    # Added password field to fix 'unexpected keyword' error
+    password = models.CharField(max_length=255) 
     
     ROLE_CHOICES = [
         ('Admin', 'Admin'), 
@@ -18,7 +20,6 @@ class User(models.Model):
 class Course(models.Model):
     course_id = models.CharField(max_length=20, primary_key=True)
     course_name = models.CharField(max_length=100)
-    # Instructor is a User filtered by the 'Instructor' role
     instructor = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'Instructor'})
 
     def __str__(self):
@@ -36,7 +37,6 @@ class AttendanceRecord(models.Model):
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
     
-    # Student is a User filtered by the 'Student' role
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'Student'})
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
