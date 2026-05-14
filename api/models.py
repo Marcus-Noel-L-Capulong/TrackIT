@@ -20,7 +20,8 @@ class User(models.Model):
 class Course(models.Model):
     course_id = models.CharField(max_length=20, primary_key=True)
     course_name = models.CharField(max_length=100)
-    instructor = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'Instructor'})
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'Instructor'}, related_name='teaching_courses')
+    students = models.ManyToManyField(User, related_name='enrolled_courses', limit_choices_to={'role': 'Student'}, blank=True)
 
     def __str__(self):
         return f"{self.course_id}: {self.course_name}"

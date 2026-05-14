@@ -14,4 +14,8 @@ urlpatterns = [
     # INSTRUCTOR/ADMIN ENDPOINTS
     path('attendance/record/', views.record_attendance, name='record_attendance'),
     path('courses/manage/', views.manage_courses, name='manage_courses'),
+    path('courses/roster/', views.update_course_roster, name='update_course_roster'),
+    path('courses/roster/<str:course_id>/', views.get_course_roster, name='get_course_roster'),
+    path('attendance/export/', views.export_attendance_report, name='export_attendance_report'),
+    path('attendance/list/<str:course_id>/', views.get_course_attendance, name='get_course_attendance'),
 ]

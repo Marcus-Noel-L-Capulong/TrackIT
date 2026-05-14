@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { display: flex; background-color: #f4f7f6; min-height: 100vh; }
+        .sidebar { width: 250px; background-color: #212529; color: white; padding: 20px; }
+        .sidebar h2 { margin-bottom: 30px; font-size: 20px; }
+        .content { flex: 1; padding: 40px; overflow-y: auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 800px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        button.remove { background-color: #dc3545; }
+        button.remove:hover { background-color: #c82333; }
+        button.add { background-color: #28a745; }
+        button.add:hover { background-color: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f8f9fa; }
+        #statusMessage { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🛠 Admin Panel</h2>
+        <p id="welcomeName">Welcome, Admin</p>
+        <button onclick="logout()" style="margin-top: 20px; background: #dc3545; width: 100%;">Logout</button>
+    </div>
+
+    <div class="content">
+        <h2>Manage Course Rosters</h2>
+        <br>
+        
+        <div class="card">
+            <div class="form-group">
+                <label>Enter Course ID to Manage</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="courseIdInput" placeholder="e.g., CS101">
+                    <button onclick="loadRoster()">Load Roster</button>
+                </div>
+            </div>
+            <div id="rosterStatus"></div>
+        </div>
+
+        <div id="rosterSection" style="display: none;">
+            <h3 id="courseTitle">Course: CS101</h3>
+            <br>
+            <div class="card">
+                <h4>Enrolled Students</h4>
+                <table id="enrolledTable">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="enrolledBody"></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h4>Available Students (Not Enrolled)</h4>
+                <table id="availableTable">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="availableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (!user || user.role !== 'Admin') {
+            // In a real app, redirect to login
+            // window.location.href = 'login.html';
+        } else {
+            document.getElementById('welcomeName').innerText = `Welcome, ${user.name}`;
+        }
+
+        async function loadRoster() {
+            const courseId = document.getElementById('courseIdInput').value;
+            if (!courseId) return alert('Please enter a Course ID');
+
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/api/courses/roster/${courseId}/`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('courseTitle').innerText = `Course: ${data.course_name} (${data.course_id})`;
+                    document.getElementById('rosterSection').style.display = 'block';
+                    renderTables(data.enrolled, data.available);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (err) {
+                alert('Failed to connect to backend');
+            }
+        }
+
+        function renderTables(enrolled, available) {
+            const enrolledBody = document.getElementById('enrolledBody');
+            const availableBody = document.getElementById('availableBody');
+            const courseId = document.getElementById('courseIdInput').value;
+
+            enrolledBody.innerHTML = enrolled.map(s => `
+                <tr>
+                    <td>${s.user_id}</td>
+                    <td>${s.name}</td>
+                    <td><button class="remove" onclick="updateRoster('${courseId}', '${s.user_id}', 'remove')">Remove</button></td>
+                </tr>
+            `).join('') || '<tr><td colspan="3">No students enrolled</td></tr>';
+
+            availableBody.innerHTML = available.map(s => `
+                <tr>
+                    <td>${s.user_id}</td>
+                    <td>${s.name}</td>
+                    <td><button class="add" onclick="updateRoster('${courseId}', '${s.user_id}', 'add')">Add</button></td>
+                </tr>
+            `).join('') || '<tr><td colspan="3">No more students available</td></tr>';
+        }
+
+        async function updateRoster(courseId, studentId, action) {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/courses/roster/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ course_id: courseId, student_id: studentId, action: action })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.message);
+                    loadRoster(); // Refresh
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (err) {
+                alert('Failed to connect to backend');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

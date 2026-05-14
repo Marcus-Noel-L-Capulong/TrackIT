@@ -49,6 +49,9 @@ async function loginUser(userData) {
             if (result.user.role === 'Student') {
                 console.log("Redirecting to Student Dashboard");
                 window.location.href = './student_dashboard.html';
+            } else if (result.user.role === 'Admin') {
+                console.log("Redirecting to Admin Dashboard");
+                window.location.href = './admin_dashboard.html';
             } else {
                 console.log("Redirecting to Teacher Dashboard");
                 window.location.href = './teacher_dashboard.html';
