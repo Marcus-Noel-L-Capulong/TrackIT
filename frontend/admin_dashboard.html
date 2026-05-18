@@ -10,7 +10,7 @@
         .sidebar { width: 250px; background-color: #212529; color: white; padding: 20px; }
         .sidebar h2 { margin-bottom: 30px; font-size: 20px; }
         .content { flex: 1; padding: 40px; overflow-y: auto; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 800px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 800px; margin-bottom: 30px; }
         .form-group { margin-bottom: 15px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
@@ -29,15 +29,40 @@
 <body>
 
     <div class="sidebar">
-        <h2>🛠 Admin Panel</h2>
+        <h2>Admin Panel</h2>
         <p id="welcomeName">Welcome, Admin</p>
         <button onclick="logout()" style="margin-top: 20px; background: #dc3545; width: 100%;">Logout</button>
     </div>
 
     <div class="content">
+        
+        <h2>Staff Management</h2>
+        <br>
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">Register New Teacher</h3>
+            <form id="teacherRegForm">
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Teacher ID</label>
+                        <input type="text" id="t_userId" placeholder="e.g., T102" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Full Name</label>
+                        <input type="text" id="t_name" placeholder="e.g., Jane Doe" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Initial Password</label>
+                        <input type="password" id="t_password" required>
+                    </div>
+                </div>
+                <button type="submit" class="add" style="width: 100%;">Create Teacher Account</button>
+            </form>
+        </div>
+
+        <hr style="margin: 40px 0; border: 0; border-top: 1px solid #ddd;">
+
         <h2>Manage Course Rosters</h2>
         <br>
-        
         <div class="card">
             <div class="form-group">
                 <label>Enter Course ID to Manage</label>
@@ -83,14 +108,47 @@
     </div>
 
     <script>
-        const user = JSON.parse(localStorage.getItem('currentUser'));
-        if (!user || user.role !== 'Admin') {
-            // In a real app, redirect to login
-            // window.location.href = 'login.html';
+        // AUTH CHECK (Updated to match auth.js)
+        const userRole = localStorage.getItem('user_role');
+        const userName = localStorage.getItem('user_name');
+        
+        if (!userRole || userRole !== 'Admin') {
+            window.location.href = './login.html';
         } else {
-            document.getElementById('welcomeName').innerText = `Welcome, ${user.name}`;
+            document.getElementById('welcomeName').innerText = `Welcome, ${userName}`;
         }
 
+        // --- NEW: HANDLE TEACHER REGISTRATION ---
+        document.getElementById('teacherRegForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const teacherData = {
+                user_id: document.getElementById('t_userId').value,
+                name: document.getElementById('t_name').value,
+                password: document.getElementById('t_password').value,
+                role: 'Instructor' // Hardcoded to prevent tampering
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(teacherData)
+                });
+
+                if (response.ok) {
+                    alert("Success! New Teacher account created.");
+                    e.target.reset(); // Clears the form inputs
+                } else {
+                    const err = await response.json();
+                    alert("Error: " + (err.error || "Registration failed"));
+                }
+            } catch (err) {
+                alert('Failed to connect to backend server.');
+            }
+        });
+
+        // --- EXISTING: ROSTER MANAGEMENT ---
         async function loadRoster() {
             const courseId = document.getElementById('courseIdInput').value;
             if (!courseId) return alert('Please enter a Course ID');
@@ -144,7 +202,7 @@
                 const data = await response.json();
                 if (response.ok) {
                     alert(data.message);
-                    loadRoster(); // Refresh
+                    loadRoster(); // Refresh the tables immediately
                 } else {
                     alert(`Error: ${data.error}`);
                 }
@@ -153,9 +211,10 @@
             }
         }
 
+        // --- UPDATED LOGOUT ---
         function logout() {
-            localStorage.removeItem('currentUser');
-            window.location.href = 'login.html';
+            localStorage.clear(); // Clears all TrackIT session data
+            window.location.href = './login.html';
         }
     </script>
 </body>

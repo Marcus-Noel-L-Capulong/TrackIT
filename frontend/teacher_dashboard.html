@@ -25,7 +25,7 @@
 <body>
 
     <div class="sidebar">
-        <h2>👨‍🏫 Instructor Panel</h2>
+        <h2>Instructor Panel</h2>
         <p id="welcomeName">Welcome, Teacher</p>
         <button onclick="logout()" style="margin-top: 20px; background: #dc3545;">Logout</button>
     </div>
@@ -144,12 +144,16 @@
         document.getElementById('viewDate').valueAsDate = new Date();
         document.getElementById('date').valueAsDate = new Date();
 
-        // Check if user is actually logged in
-        const user = JSON.parse(localStorage.getItem('currentUser'));
-        if (!user || user.role !== 'Instructor') {
-            // Redirect or handle unauthorized access
+        // --- UPDATED AUTH CHECK ---
+        const userRole = localStorage.getItem('user_role');
+        const userName = localStorage.getItem('user_name');
+        const userId = localStorage.getItem('user_id');
+
+        if (!userRole || userRole !== 'Instructor') {
+            // Redirect to login if not an Instructor
+            window.location.href = './login.html';
         } else {
-            document.getElementById('welcomeName').innerText = `Welcome, ${user.name}`;
+            document.getElementById('welcomeName').innerText = `Welcome, ${userName}`;
         }
 
         // Handle Form Submission
@@ -180,6 +184,8 @@
                 if (response.ok || response.status === 201) {
                     messageDiv.style.color = 'green';
                     messageDiv.innerText = data.message || 'Attendance saved successfully!';
+                    e.target.reset(); // Clear the form after success
+                    document.getElementById('date').valueAsDate = new Date(); // Reset date to today
                 } else {
                     messageDiv.style.color = 'red';
                     messageDiv.innerText = `Error: ${data.message}`;
@@ -253,9 +259,10 @@
             window.open(url, '_blank');
         });
 
+        // --- UPDATED LOGOUT ---
         function logout() {
-            localStorage.removeItem('currentUser');
-            window.location.href = 'login.html';
+            localStorage.clear();
+            window.location.href = './login.html';
         }
     </script>
 </body>

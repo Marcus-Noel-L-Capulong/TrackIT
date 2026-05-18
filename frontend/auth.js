@@ -17,7 +17,7 @@ async function registerUser(userData) {
                 successDiv.style.display = 'block';
                 successDiv.innerHTML = 'Registration successful! <a href="./login.html">Login here</a>';
             }
-            // Relative path for redirect
+            // Redirect after 2 seconds
             setTimeout(() => { window.location.href = './login.html'; }, 2000);
         } else {
             alert("Error: " + (result.error || "Registration failed"));
@@ -41,20 +41,24 @@ async function loginUser(userData) {
 
         if (response.ok) {
             console.log("Login successful! Saving session...");
+            // Save user data to localStorage for dashboard use
             localStorage.setItem('user_id', result.user.user_id);
             localStorage.setItem('user_role', result.user.role);
             localStorage.setItem('user_name', result.user.name);
 
-            // OPTION B: RELATIVE PATHS
+            // Role-Based Redirection (Authorization)
             if (result.user.role === 'Student') {
                 console.log("Redirecting to Student Dashboard");
                 window.location.href = './student_dashboard.html';
+            } else if (result.user.role === 'Instructor') {
+                console.log("Redirecting to Teacher Dashboard");
+                window.location.href = './teacher_dashboard.html';
             } else if (result.user.role === 'Admin') {
                 console.log("Redirecting to Admin Dashboard");
                 window.location.href = './admin_dashboard.html';
             } else {
-                console.log("Redirecting to Teacher Dashboard");
-                window.location.href = './teacher_dashboard.html';
+                console.warn("Unknown role detected:", result.user.role);
+                alert("Account role not recognized. Contact support.");
             }
         } else {
             alert(result.error || "Login failed");
@@ -69,19 +73,25 @@ async function loginUser(userData) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("TrackIT Auth script initialized.");
 
+    // Registration Form Listener
     const regForm = document.getElementById('registrationForm');
     if (regForm) {
         regForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            
+            // We pull the value from the hidden input field in register.html
+            const roleValue = document.getElementById('role').value;
+
             registerUser({
                 user_id: document.getElementById('userId').value,
                 name: document.getElementById('name').value,
-                role: document.getElementById('role').value,
+                role: roleValue, // This will be 'Student' based on our hidden input
                 password: document.getElementById('password').value
             });
         });
     }
 
+    // Login Form Listener
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
