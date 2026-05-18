@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { display: flex; background-color: #f4f7f6; min-height: 100vh; }
+        .sidebar { width: 250px; background-color: #343a40; color: white; padding: 20px; }
+        .sidebar h2 { margin-bottom: 30px; font-size: 20px; }
+        .content { flex: 1; padding: 40px; overflow-y: auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #statusMessage { margin-top: 15px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Instructor Panel</h2>
+        <p id="welcomeName">Welcome, Teacher</p>
+        <button onclick="logout()" style="margin-top: 20px; background: #dc3545;">Logout</button>
+    </div>
+
+    <div class="content">
+        <h2>Record Daily Attendance</h2>
+        <br>
+        <div class="card">
+            <form id="attendanceForm">
+                <div class="form-group">
+                    <label>Course ID</label>
+                    <input type="text" id="courseId" placeholder="e.g., CS101" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                
+                <div class="form-group">
+                    <label>Student ID</label>
+                    <input type="text" id="studentId" placeholder="e.g., S001" required>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="status" required>
+                        <option value="Present">Present</option>
+                        <option value="Absent">Absent</option>
+                        <option value="Late">Late</option>
+                    </select>
+                </div>
+
+                <button type="submit">Submit Attendance</button>
+                <div id="statusMessage"></div>
+            </form>
+        </div>
+
+        <br>
+        <h2>View Student Attendance</h2>
+        <br>
+        <div class="card">
+            <div class="form-group">
+                <label>Select Subject, Date, and Status</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="viewCourseId" placeholder="e.g., CS101">
+                    <input type="date" id="viewDate">
+                    <select id="viewStatus">
+                        <option value="All">All</option>
+                        <option value="Present">Present</option>
+                        <option value="Absent">Absent</option>
+                        <option value="Late">Late</option>
+                    </select>
+                    <button onclick="fetchStudentAttendance()">View List</button>
+                </div>
+            </div>
+            <div id="presentStudentsList">
+                <table id="presentTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="presentBody"></tbody>
+                </table>
+                <p id="noStudentsMessage" style="display: none; margin-top: 10px;">No students found for this subject/date.</p>
+            </div>
+        </div>
+
+        <br>
+        <h2>Export Monthly Report</h2>
+        <br>
+        <div class="card">
+            <form id="exportForm">
+                <div class="form-group">
+                    <label>Course ID</label>
+                    <input type="text" id="exportCourseId" placeholder="e.g., CS101" required>
+                </div>
+                <div class="form-group">
+                    <label>Month</label>
+                    <select id="exportMonth" required>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input type="number" id="exportYear" value="2026" required>
+                </div>
+                <div class="form-group">
+                    <label>Format</label>
+                    <select id="exportFormat" required>
+                        <option value="csv">CSV</option>
+                        <option value="pdf">PDF</option>
+                    </select>
+                </div>
+                <button type="submit" style="background-color: #28a745;">Download Report</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Set default date to today
+        document.getElementById('viewDate').valueAsDate = new Date();
+        document.getElementById('date').valueAsDate = new Date();
+
+        // --- UPDATED AUTH CHECK ---
+        const userRole = localStorage.getItem('user_role');
+        const userName = localStorage.getItem('user_name');
+        const userId = localStorage.getItem('user_id');
+
+        if (!userRole || userRole !== 'Instructor') {
+            // Redirect to login if not an Instructor
+            window.location.href = './login.html';
+        } else {
+            document.getElementById('welcomeName').innerText = `Welcome, ${userName}`;
+        }
+
+        // Handle Form Submission
+        document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageDiv = document.getElementById('statusMessage');
+            
+            const payload = {
+                course_id: document.getElementById('courseId').value,
+                date: document.getElementById('date').value,
+                records: [
+                    {
+                        student_id: document.getElementById('studentId').value,
+                        status: document.getElementById('status').value
+                    }
+                ]
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/attendance/record/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok || response.status === 201) {
+                    messageDiv.style.color = 'green';
+                    messageDiv.innerText = data.message || 'Attendance saved successfully!';
+                    e.target.reset(); // Clear the form after success
+                    document.getElementById('date').valueAsDate = new Date(); // Reset date to today
+                } else {
+                    messageDiv.style.color = 'red';
+                    messageDiv.innerText = `Error: ${data.message}`;
+                }
+            } catch (err) {
+                messageDiv.style.color = 'red';
+                messageDiv.innerText = 'Failed to connect to the backend.';
+            }
+        });
+
+        // Fetch Student Attendance
+        async function fetchStudentAttendance() {
+            const courseId = document.getElementById('viewCourseId').value;
+            const date = document.getElementById('viewDate').value;
+            const status = document.getElementById('viewStatus').value;
+            
+            if (!courseId) return alert('Please enter a Course ID');
+
+            try {
+                let url = `http://127.0.0.1:8000/api/attendance/list/${courseId}/?date=${date}`;
+                if (status !== 'All') {
+                    url += `&status=${status}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const table = document.getElementById('presentTable');
+                const body = document.getElementById('presentBody');
+                const noMsg = document.getElementById('noStudentsMessage');
+
+                if (response.ok) {
+                    if (data.records && data.records.length > 0) {
+                        body.innerHTML = data.records.map(s => {
+                            let color = 'black';
+                            if (s.status === 'Present') color = 'green';
+                            else if (s.status === 'Absent') color = 'red';
+                            else if (s.status === 'Late') color = 'orange';
+
+                            return `
+                            <tr>
+                                <td>${s.user_id}</td>
+                                <td>${s.name}</td>
+                                <td style="color: ${color}; font-weight: bold;">${s.status}</td>
+                            </tr>
+                            `;
+                        }).join('');
+                        table.style.display = 'table';
+                        noMsg.style.display = 'none';
+                    } else {
+                        table.style.display = 'none';
+                        noMsg.style.display = 'block';
+                    }
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (err) {
+                alert('Failed to connect to backend');
+            }
+        }
+
+        // Handle Export Form Submission
+        document.getElementById('exportForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const courseId = document.getElementById('exportCourseId').value;
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+            const format = document.getElementById('exportFormat').value;
+            
+            const url = `http://127.0.0.1:8000/api/attendance/export/?course_id=${courseId}&month=${month}&year=${year}&format=${format}`;
+            window.open(url, '_blank');
+        });
+
+        // --- UPDATED LOGOUT ---
+        function logout() {
+            localStorage.clear();
+            window.location.href = './login.html';
+        }
+    </script>
+</body>
+</html>
