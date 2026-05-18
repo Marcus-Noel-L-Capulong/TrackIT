@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TrackIT - Register</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+        .success-message { color: #28a745; text-align: center; margin-top: 15px; display: none; font-weight: bold; }
+        .login-link { text-align: center; margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Create an Account</h2>
+    <form id="registrationForm">
+        <input type="hidden" id="role" value="Student">
+
+        <div class="form-group">
+            <label>User ID</label>
+            <input type="text" id="userId" placeholder="Enter your Student ID" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="name" placeholder="Enter your full name" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Create a password" required>
+        </div>
+        
+        <button type="submit">Register</button>
+        
+        <div class="login-link">Already have an account? <a href="login.html">Login here</a></div>
+        <div id="successMessage" class="success-message">Account created! Redirecting to login...</div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevents the page from refreshing
+        
+        // Gather the data from the inputs
+        const studentData = {
+            user_id: document.getElementById('userId').value,
+            name: document.getElementById('name').value,
+            password: document.getElementById('password').value,
+            role: document.getElementById('role').value // Hardcoded to 'Student'
+        };
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentData)
+            });
+
+            if (response.ok) {
+                // Show the hidden success message
+                document.getElementById('successMessage').style.display = 'block';
+                
+                // Wait 2 seconds so the user can read the message, then redirect to login
+                setTimeout(() => {
+                    window.location.href = './login.html';
+                }, 2000);
+            } else {
+                const data = await response.json();
+                alert("Registration failed: " + (data.error || "Unknown error"));
+            }
+        } catch (err) {
+            alert("Could not connect to the server. Is Django running?");
+        }
+    });
+</script>
+</body>
+</html>
